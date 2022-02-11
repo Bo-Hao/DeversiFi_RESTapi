@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"hash"
-	"io"
 	"io/ioutil"
 	"math/big"
 	"net/http"
@@ -57,6 +56,7 @@ func (p *Client) newRequest(method, spath string, body []byte, params *map[strin
 		return nil, err
 	}
 	p.Headers(req)
+
 	return req, nil
 }
 
@@ -65,6 +65,7 @@ func (c *Client) sendRequest(method, spath string, body []byte, params *map[stri
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(req.URL.String())
 	res, err := c.HTTPC.Do(req)
 	if err != nil {
 		return nil, err
@@ -123,7 +124,7 @@ func (p *Client) sign() (string, error) {
 	h = md5.New()
 	r := big.NewInt(0)
 	s := big.NewInt(0)
-	io.WriteString(h, "This is a message to be signed and verified by ECDSA!")
+	//io.WriteString(h, "This is a message to be signed and verified by ECDSA!")
 	signhash := h.Sum(nil)
 	r, s, serr := ecdsa.Sign(rand.Reader, privatekey, signhash)
 	if serr != nil {
