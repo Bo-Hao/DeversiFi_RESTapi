@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/md5"
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"hash"
@@ -139,4 +140,35 @@ func (p *Client) sign() (string, error) {
 		return "", errors.New("didn't pass verifystatus")
 	}
 	return result, nil
+}
+
+func (p *Client) signAndPublicKey() (string, string, error) {
+	privatekey, err := crypto.HexToECDSA(p.privateKey)
+	if err != nil {
+		return "", "", err
+	}
+	var pubkey ecdsa.PublicKey
+	pubkey = privatekey.PublicKey
+	var h hash.Hash
+	h = md5.New()
+	//r := big.NewInt(0)
+	//s := big.NewInt(0)
+	//io.WriteString(h, "This is a message to be signed and verified by ECDSA!")
+	signhash := h.Sum(nil)
+	r, s, serr := ecdsa.Sign(rand.Reader, privatekey, signhash)
+	if serr != nil {
+		return "", "", serr
+	}
+	signature := r.Bytes()
+	signature = append(signature, s.Bytes()...)
+	result := fmt.Sprintf("Signature : %x\n", signature)
+	// Verify
+	verifystatus := ecdsa.Verify(&pubkey, signhash, r, s)
+	if !verifystatus {
+		return "", "", errors.New("didn't pass verifystatus")
+	}
+
+	publicKey := hex.EncodeToString(append(pubkey.X.Bytes(), pubkey.Y.Bytes()...))
+	//publicKey := hex.EncodeToString(pubkey.X.Bytes())
+	return result, publicKey, nil
 }
