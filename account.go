@@ -17,16 +17,16 @@ type GetFeeRateResponse struct {
 	} `json:"fees"`
 }
 
-func (p *Client) GetFeeRate() (result *GetFeeRateResponse, err error) {
+func (p *Client) GetFeeRate(token string) (result *GetFeeRateResponse, err error) {
 	nonce := time.Now().Unix()
-	s, err := p.sign()
+	s, err := p.sign(strconv.FormatInt(nonce, 10))
 	if err != nil {
 		return nil, err
 	}
 	params := make(map[string]string)
 	params["nonce"] = strconv.FormatInt(nonce, 10)
 	params["signature"] = s
-	params["token"] = "ETH"
+	params["token"] = token
 	res, err := p.sendRequest(http.MethodGet, "/v1/trading/r/feeRate", nil, &params)
 	if err != nil {
 		return nil, err
@@ -46,17 +46,17 @@ type GetBalanceResponse []struct {
 	Token         string `json:"token"`
 }
 
-func (p *Client) GetBalance() (result *GetBalanceResponse, err error) {
-	s, err := p.sign()
+func (p *Client) GetBalance(token string) (result *GetBalanceResponse, err error) {
+	nonce := time.Now().Add(time.Second).Unix()
+	nonceStr := strconv.FormatInt(nonce, 10)
+	s, err := p.sign(nonceStr)
 	if err != nil {
 		return nil, err
 	}
 	params := make(map[string]string)
-	nonce := time.Now().Unix()
-	params["nonce"] = strconv.FormatInt(nonce, 10)
+	params["nonce"] = nonceStr
 	params["signature"] = s
-	params["token"] = "ETH"
-
+	params["token"] = token
 	jsonBody, err := json.Marshal(params)
 	if err != nil {
 		return nil, err
@@ -115,21 +115,19 @@ type GetUserConfigResponse struct {
 
 // Returns the DeversiFi application and user configuration details.
 func (p *Client) GetUserConfig() (result *GetUserConfigResponse, err error) {
-	s, err := p.sign()
+	nonce := time.Now().Add(time.Second).Unix()
+	nonceStr := strconv.FormatInt(nonce, 10)
+	s, err := p.sign(nonceStr)
 	if err != nil {
 		return nil, err
 	}
 	params := make(map[string]string)
-	nonce := time.Now().Unix()
-	params["nonce"] = strconv.FormatInt(nonce, 10)
+	params["nonce"] = nonceStr
 	params["signature"] = s
-	params["token"] = "ETH"
-
 	jsonBody, err := json.Marshal(params)
 	if err != nil {
 		return nil, err
 	}
-
 	res, err := p.sendRequest(http.MethodPost, "/v1/trading/r/getUserConf", jsonBody, nil)
 	if err != nil {
 		return nil, err
@@ -184,16 +182,16 @@ type RegisterResponse struct {
 
 // This method is used to register a Stark key that corresponds to an Ethereum public address. This will return deversifi Signature or DeversiFi application and user configuration details.
 func (p *Client) Register() (result *RegisterResponse, err error) {
-	s, publ, err := p.signAndPublicKey()
+	nonce := time.Now().Add(time.Second).Unix()
+	nonceStr := strconv.FormatInt(nonce, 10)
+	s, publ, err := p.signAndPublicKey(nonceStr)
 	if err != nil {
 		return nil, err
 	}
 	params := make(map[string]string)
-	nonce := time.Now().Unix()
 	params["starkKey"] = publ
-	params["nonce"] = strconv.FormatInt(nonce, 10)
+	params["nonce"] = nonceStr
 	params["signature"] = s
-
 	fmt.Println(publ)
 	jsonBody, err := json.Marshal(params)
 	if err != nil {
@@ -219,16 +217,16 @@ type GetUserBalancesResponse struct {
 
 // This is used to retrieve the total and active balances of a user per token. Active balance is the balance that is currently available. Total balance (specified as balance) is the sum of all the balances including those locked for trading.
 func (p *Client) GetUserBalances() (result *GetUserBalancesResponse, err error) {
-	s, err := p.sign()
+	nonce := time.Now().Add(time.Second).Unix()
+	nonceStr := strconv.FormatInt(nonce, 10)
+	s, err := p.sign(nonceStr)
 	if err != nil {
 		return nil, err
 	}
 	params := make(map[string]interface{})
-	nonce := time.Now().Unix()
 
-	params["nonce"] = strconv.FormatInt(nonce, 10)
+	params["nonce"] = nonceStr
 	params["signature"] = s
-	params["token"] = "ETH"
 	params["fields"] = []string{"balance", "updatedAt"}
 
 	jsonBody, err := json.Marshal(params)

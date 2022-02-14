@@ -3,18 +3,18 @@ package dvfapi
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"hash"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"reflect"
 	"time"
+	"unsafe"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	jsoniter "github.com/json-iterator/go"
@@ -66,7 +66,6 @@ func (c *Client) sendRequest(method, spath string, body []byte, params *map[stri
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(req.URL.String())
 	res, err := c.HTTPC.Do(req)
 	if err != nil {
 		return nil, err
@@ -114,54 +113,63 @@ func SocketEndPointHub(private bool) (endpoint string) {
 	return endpoint
 }
 
-func (p *Client) sign() (string, error) {
+func String2Bytes(s string) []byte {
+	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	bh := reflect.SliceHeader{
+		Data: sh.Data,
+		Len:  sh.Len,
+		Cap:  sh.Len,
+	}
+	return *(*[]byte)(unsafe.Pointer(&bh))
+}
+
+type signature struct {
+	R *big.Int
+	S *big.Int
+}
+
+func (p *Client) sign(message string) (string, error) {
 	privatekey, err := crypto.HexToECDSA(p.privateKey)
 	if err != nil {
 		return "", err
 	}
+	signhash := String2Bytes(message)
 	var pubkey ecdsa.PublicKey
 	pubkey = privatekey.PublicKey
-	var h hash.Hash
-	h = md5.New()
 	r := big.NewInt(0)
 	s := big.NewInt(0)
 	//io.WriteString(h, "This is a message to be signed and verified by ECDSA!")
-	signhash := h.Sum(nil)
 	r, s, serr := ecdsa.Sign(rand.Reader, privatekey, signhash)
 	if serr != nil {
 		return "", serr
 	}
 	signature := r.Bytes()
 	signature = append(signature, s.Bytes()...)
-	result := fmt.Sprintf("Signature : %x\n", signature)
+	result := fmt.Sprintf("Signature : %x", signature)
 	// Verify
 	verifystatus := ecdsa.Verify(&pubkey, signhash, r, s)
 	if !verifystatus {
 		return "", errors.New("didn't pass verifystatus")
 	}
 	return result, nil
+
 }
 
-func (p *Client) signAndPublicKey() (string, string, error) {
+func (p *Client) signAndPublicKey(message string) (string, string, error) {
 	privatekey, err := crypto.HexToECDSA(p.privateKey)
 	if err != nil {
 		return "", "", err
 	}
+	signhash := String2Bytes(message)
 	var pubkey ecdsa.PublicKey
 	pubkey = privatekey.PublicKey
-	var h hash.Hash
-	h = md5.New()
-	//r := big.NewInt(0)
-	//s := big.NewInt(0)
-	//io.WriteString(h, "This is a message to be signed and verified by ECDSA!")
-	signhash := h.Sum(nil)
 	r, s, serr := ecdsa.Sign(rand.Reader, privatekey, signhash)
 	if serr != nil {
 		return "", "", serr
 	}
 	signature := r.Bytes()
 	signature = append(signature, s.Bytes()...)
-	result := fmt.Sprintf("Signature : %x\n", signature)
+	result := fmt.Sprintf("Signature : %x", signature)
 	// Verify
 	verifystatus := ecdsa.Verify(&pubkey, signhash, r, s)
 	if !verifystatus {
